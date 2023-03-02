@@ -101,14 +101,16 @@ contract Voting is Ownable {
             revert Voting__CandidateNotFound();
         }
 
-        if (timeExpired()) {
-            state = State.CALCULATING;
-            revert Voting__TimeExpired();
-        }
+        // if (timeExpired()) {
+        //     state = State.CALCULATING;
+        //     revert Voting__TimeExpired();
+        // }
         ++candidatesVotes[_candidate];
         voters[msg.sender].voted = true;
         emit VoterVoted(msg.sender, _candidate);
     }
+
+    //function closeVoting() public onl
 
     function getQuorumPercent() private view returns (uint256) {
         uint256 voted = 0; //registered * 100 / voted
