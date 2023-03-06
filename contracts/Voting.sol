@@ -19,14 +19,8 @@ contract Voting is Ownable {
 
     enum State {
         STARTED,
-        VOTING,
         CALCULATING,
         ENDED
-    }
-
-    enum ResultState {
-        QUORUM_NO,
-        QUORUM_YES
     }
 
     uint256 private immutable i_startTime;
@@ -35,7 +29,7 @@ contract Voting is Ownable {
     uint256 public immutable i_quorum; //percent of voted
     uint256 private votedCount; //count of already voted
     State private state;
-    ResultState public resultState;
+    bool public isQuorum;
     string private question;
     string[] private candidates;
     address[] private registeredVoters;
@@ -44,6 +38,7 @@ contract Voting is Ownable {
 
     event VoterRegistered(address indexed voter);
     event VoterVoted(address indexed voter, string candidate);
+    event VotingClosed();
 
     constructor(
         /* uint _startTime,*/
@@ -86,14 +81,13 @@ contract Voting is Ownable {
         for (uint256 i = 0; i < _voters.length; i++) {
             registerVoter(_voters[i]);
         }
-        state = State.VOTING;
     }
 
     function voteFor(string memory _candidate) public onlyRegistered {
         if (voters[msg.sender].voted) {
             revert Voting__AlreadyVoted();
         }
-        if (state != State.VOTING) {
+        if (state != State.STARTED) {
             revert Voting__WrongState();
         }
 
@@ -101,16 +95,18 @@ contract Voting is Ownable {
             revert Voting__CandidateNotFound();
         }
 
-        // if (timeExpired()) {
-        //     state = State.CALCULATING;
-        //     revert Voting__TimeExpired();
-        // }
+        if (timeExpired()) {
+            revert Voting__TimeExpired();
+        }
         ++candidatesVotes[_candidate];
         voters[msg.sender].voted = true;
         emit VoterVoted(msg.sender, _candidate);
     }
 
-    //function closeVoting() public onl
+    function launchCalculation() public {
+        state = State.CALCULATING;
+        emit VotingClosed();
+    }
 
     function getQuorumPercent() private view returns (uint256) {
         uint256 voted = 0; //registered * 100 / voted
@@ -126,16 +122,15 @@ contract Voting is Ownable {
         return getQuorumPercent() >= i_quorum;
     }
 
-    function getWinner() public returns (ResultState, string memory) {
+    function getWinner() public returns (bool, string memory) {
         if (state != State.CALCULATING) {
             revert Voting__WrongState();
         }
         if (!quorumArchieved()) {
-            resultState = ResultState.QUORUM_NO;
-            return (resultState, "");
+            return (isQuorum, "");
         }
 
-        resultState = ResultState.QUORUM_YES;
+        isQuorum = true;
 
         uint256 maxVotes = 0;
         uint256 indexWinner = 0;
@@ -146,7 +141,7 @@ contract Voting is Ownable {
             }
         }
 
-        return (resultState, candidates[indexWinner]);
+        return (isQuorum, candidates[indexWinner]);
     }
 
     function compareStrings(string memory s1, string memory s2) public pure returns (bool) {
@@ -164,7 +159,7 @@ contract Voting is Ownable {
     }
 
     function timeExpired() public view returns (bool) {
-        return block.timestamp > i_endTime;
+        return block.timestamp >= i_endTime;
     }
 
     function getQuestion() public view returns (string memory) {

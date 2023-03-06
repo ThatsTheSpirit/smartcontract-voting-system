@@ -1,21 +1,25 @@
 const { assert, expect } = require("chai")
 const { network, deployments, ethers, getNamedAccounts } = require("hardhat")
 const { time } = require("@nomicfoundation/hardhat-network-helpers")
+const { developmentChains, networkConfig } = require("../../helper-hardhat-config")
 
 describe("Voting Unit Tests", function () {
-    let votingContract, accounts, deployer
-    const question = "Do you like this tea?"
-    const candidates = ["yes", "no"]
-    const duration = 60 * 2 //2 minutes
-    const quorum = 50 //50%
-    let startTimeStamp
+    let votingContract, accounts, deployer, startTimeStamp
+    const chainId = network.config.chainId
+
+    const question = networkConfig[chainId]["question"]
+    const candidates = networkConfig[chainId]["candidates"]
+    const duration = networkConfig[chainId]["duration"]
+    const quorum = networkConfig[chainId]["quorum"]
+
     beforeEach(async function () {
         accounts = await ethers.getSigners()
         deployer = accounts[0]
-        const contractFactory = await ethers.getContractFactory("Voting", deployer)
-        votingContract = await contractFactory.deploy(question, candidates, duration, quorum)
-        await votingContract.deployed()
+        await deployments.fixture(["voting"])
+        votingContract = await ethers.getContract("Voting")
+
         startTimeStamp = await time.latest()
+
         //console.log(`Deployed to ${votingContract.address}`)
     })
 
@@ -44,6 +48,9 @@ describe("Voting Unit Tests", function () {
             const actualState = await votingContract.getState()
             const expectedState = 0
             assert.equal(actualState, expectedState)
+
+            const actualQuorum = await votingContract.getQuorum()
+            assert.equal(actualQuorum, quorum)
         })
     })
 
@@ -84,8 +91,9 @@ describe("Voting Unit Tests", function () {
         })
 
         it("reverts if state isn't correct", async function () {
-            const addresses = accounts.slice(2, 4).map((acc) => acc.address)
-            await votingContract.registerVoters(addresses)
+            //const addresses = accounts.slice(2, 4).map((acc) => acc.address)
+            //await votingContract.registerVoters(addresses)
+            await votingContract.launchCalculation()
 
             await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
                 "Voting__WrongState"
@@ -147,11 +155,11 @@ describe("Voting Unit Tests", function () {
             )
         })
 
-        it("changes the state to CALCULATING", async function () {
-            await time.increaseTo(startTimeStamp + duration)
-            await votingContract.voteFor(candidateYes)
-            const actualState = await votingContract.getState()
-            assert.equal(actualState.toNumber(), 2)
+        it("reverts if state isn't correct", async function () {
+            await votingContract.launchCalculation()
+            await expect(votingContract.voteFor(candidateYes)).to.be.revertedWith(
+                "Voting__WrongState"
+            )
         })
     })
 })
