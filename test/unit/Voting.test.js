@@ -106,7 +106,7 @@ describe("Voting Unit Tests", function () {
             const addresses = accounts.map((acc) => acc.address)
             await votingContract.registerVoters(addresses)
 
-            const expectedState = 1
+            const expectedState = 0
             const actualState = await votingContract.getState()
             assert.equal(expectedState, actualState)
 
@@ -148,18 +148,67 @@ describe("Voting Unit Tests", function () {
             )
         })
 
+        it("reverts if state isn't correct", async function () {
+            await votingContract.launchCalculation()
+            await expect(votingContract.voteFor(candidateYes)).to.be.revertedWith(
+                "Voting__WrongState"
+            )
+        })
+
+        it("reverts if candidate doesn't exist", async function () {
+            const unexistentCandidate = "some unexistent person"
+            await expect(votingContract.voteFor(unexistentCandidate)).to.be.revertedWith(
+                "Voting__CandidateNotFound"
+            )
+        })
+
         it("reverts when time expired", async function () {
             await time.increaseTo(startTimeStamp + duration)
             await expect(votingContract.voteFor(candidateYes)).to.be.revertedWith(
                 "Voting__TimeExpired"
             )
         })
+    })
+
+    describe("defWinner", function () {
+        let voters
+        const candidateYes = "yes",
+            candidateNo = "no"
+        beforeEach(async function () {
+            voters = accounts.slice(0, 3).map((acc) => acc.address)
+            await votingContract.registerVoters(voters)
+        })
 
         it("reverts if state isn't correct", async function () {
+            await expect(votingContract.defWinner()).to.be.revertedWith("Voting__WrongState")
+        })
+
+        it("defines the winner if quorum archieved", async function () {
+            const acc1Connected = await votingContract.connect(accounts[0])
+            await acc1Connected.voteFor(candidateYes)
+
+            const acc2Connected = await votingContract.connect(accounts[1])
+            await acc2Connected.voteFor(candidateNo)
+
+            const acc3Connected = await votingContract.connect(accounts[2])
+            await acc3Connected.voteFor(candidateYes)
+
             await votingContract.launchCalculation()
-            await expect(votingContract.voteFor(candidateYes)).to.be.revertedWith(
-                "Voting__WrongState"
-            )
+
+            await votingContract.defWinner()
+            const winner = await votingContract.getWinner()
+            assert.equal(winner, candidateYes)
+
+            const expectedState = 2
+            expect(await votingContract.getState()).to.eq(expectedState)
+        })
+
+        it("can't define the winner if quorum doesn't archieved", async function () {
+            await votingContract.launchCalculation()
+
+            await votingContract.defWinner()
+            const winner = await votingContract.getWinner()
+            assert.equal(winner, "")
         })
     })
 })

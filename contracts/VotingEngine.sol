@@ -20,4 +20,8 @@ contract VotingEngine is Ownable {
         votings.push(new Voting(_question, _candidates, _duration, _quorum));
         ownerToVotings[msg.sender].push(votings[votings.length - 1]);
     }
+
+    function getVoting(uint256 index) public view returns (Voting) {
+        return votings[index];
+    }
 }

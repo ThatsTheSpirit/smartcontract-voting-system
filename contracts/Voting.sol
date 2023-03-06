@@ -10,6 +10,7 @@ error Voting__WrongState();
 error Voting__NotRegistered();
 error Voting__CandidateNotFound();
 error Voting__TimeExpired();
+error Voting__NotWhitelisted();
 
 contract Voting is Ownable {
     struct Voter {
@@ -35,6 +36,8 @@ contract Voting is Ownable {
     address[] private registeredVoters;
     mapping(string => uint256) public candidatesVotes;
     mapping(address => Voter) public voters;
+    mapping(address => bool) whitelisted;
+    string private winner;
 
     event VoterRegistered(address indexed voter);
     event VoterVoted(address indexed voter, string candidate);
@@ -54,12 +57,20 @@ contract Voting is Ownable {
         question = _question;
         candidates = _candidates;
         state = State.STARTED;
+        whitelisted[msg.sender] = true;
         //lastTimeStamp = block.timestamp;
     }
 
     modifier onlyRegistered() {
         if (!voters[msg.sender].registered) {
             revert Voting__NotRegistered();
+        }
+        _;
+    }
+
+    modifier onlyWhitelisted() {
+        if (!whitelisted[msg.sender]) {
+            revert Voting__NotWhitelisted(); //
         }
         _;
     }
@@ -103,9 +114,13 @@ contract Voting is Ownable {
         emit VoterVoted(msg.sender, _candidate);
     }
 
-    function launchCalculation() public {
+    function launchCalculation() public onlyWhitelisted {
         state = State.CALCULATING;
         emit VotingClosed();
+    }
+
+    function addToWhitelist(address _addr) public onlyOwner {
+        whitelisted[_addr] = true;
     }
 
     function getQuorumPercent() private view returns (uint256) {
@@ -115,33 +130,39 @@ contract Voting is Ownable {
                 voted++;
             }
         }
-        return (registeredVoters.length * 100) / voted;
+        if (voted != 0) {
+            return (registeredVoters.length * 100) / voted;
+        }
+        return voted;
     }
 
     function quorumArchieved() private view returns (bool) {
         return getQuorumPercent() >= i_quorum;
     }
 
-    function getWinner() public returns (bool, string memory) {
+    function defWinner() public returns (bool) {
         if (state != State.CALCULATING) {
             revert Voting__WrongState();
         }
-        if (!quorumArchieved()) {
-            return (isQuorum, "");
-        }
 
-        isQuorum = true;
+        state = State.ENDED;
 
-        uint256 maxVotes = 0;
-        uint256 indexWinner = 0;
-        for (uint256 i = 0; i < candidates.length; i++) {
-            if (candidatesVotes[candidates[i]] > maxVotes) {
-                maxVotes = candidatesVotes[candidates[i]];
-                indexWinner = i;
+        if (quorumArchieved()) {
+            isQuorum = true;
+
+            uint256 maxVotes = 0;
+            uint256 indexWinner = 0;
+            for (uint256 i = 0; i < candidates.length; i++) {
+                if (candidatesVotes[candidates[i]] > maxVotes) {
+                    maxVotes = candidatesVotes[candidates[i]];
+                    indexWinner = i;
+                }
             }
-        }
 
-        return (isQuorum, candidates[indexWinner]);
+            winner = candidates[indexWinner];
+            return true;
+        }
+        return false;
     }
 
     function compareStrings(string memory s1, string memory s2) public pure returns (bool) {
@@ -160,6 +181,10 @@ contract Voting is Ownable {
 
     function timeExpired() public view returns (bool) {
         return block.timestamp >= i_endTime;
+    }
+
+    function getWinner() public view returns (string memory) {
+        return winner;
     }
 
     function getQuestion() public view returns (string memory) {
