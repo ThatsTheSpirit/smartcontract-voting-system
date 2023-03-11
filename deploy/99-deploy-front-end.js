@@ -3,7 +3,9 @@ const fs = require("fs")
 
 const FRONT_END_ADDRESSES_FILE =
     "../nextjs-smartcontract-voting-system/constants/contractAddresses.json"
-const FRONT_END_ABI_FILE = "../nextjs-smartcontract-voting-system/constants/abi.json"
+const FRONT_END_ABI_VOTINGENG_FILE =
+    "../nextjs-smartcontract-voting-system/constants/votingEngAbi.json"
+const FRONT_END_ABI_VOTING_FILE = "../nextjs-smartcontract-voting-system/constants/votingAbi.json"
 
 module.exports = async function () {
     if (process.env.UPDATE_FRONT_END) {
@@ -15,7 +17,15 @@ module.exports = async function () {
 
 async function updateAbi() {
     const votingEng = await ethers.getContract("VotingEngine")
-    fs.writeFileSync(FRONT_END_ABI_FILE, votingEng.interface.format(ethers.utils.FormatTypes.json))
+    fs.writeFileSync(
+        FRONT_END_ABI_VOTINGENG_FILE,
+        votingEng.interface.format(ethers.utils.FormatTypes.json)
+    )
+    const voting = await ethers.getContract("Voting")
+    fs.writeFileSync(
+        FRONT_END_ABI_VOTING_FILE,
+        voting.interface.format(ethers.utils.FormatTypes.json)
+    )
 }
 
 async function updateContractAddresses() {
