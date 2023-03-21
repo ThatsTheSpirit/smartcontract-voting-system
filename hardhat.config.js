@@ -9,6 +9,7 @@ require("dotenv").config()
 
 const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://eth-goerli"
 const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL || "https://eth-mumbai"
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://eth-sepolia"
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xkey"
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -27,6 +28,12 @@ module.exports = {
             chainId: 5,
             blockConfirmations: 6,
             url: GOERLI_RPC_URL,
+            accounts: [PRIVATE_KEY],
+        },
+        sepolia: {
+            chainId: 11155111,
+            blockConfirmations: 6,
+            url: SEPOLIA_RPC_URL,
             accounts: [PRIVATE_KEY],
         },
         mumbai: {

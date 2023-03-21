@@ -22,6 +22,13 @@ const networkConfig = {
         duration: 60 * 2,
         quorum: 50, //%
     },
+    11155111: {
+        name: "sepolia",
+        question: "Do you like sepolia?",
+        candidates: ["yes", "no"],
+        duration: 60 * 2,
+        quorum: 50, //%
+    },
 }
 
 const developmentChains = ["hardhat", "localhost"]

@@ -9,7 +9,7 @@ contract VotingEngine is Ownable {
     Voting[] public votings;
     mapping(address => Voting[]) public ownerToVotings;
 
-    constructor() {}
+    //constructor() {}
 
     function createVoting(
         string memory _question,
@@ -23,5 +23,13 @@ contract VotingEngine is Ownable {
 
     function getVoting(uint256 index) public view returns (Voting) {
         return votings[index];
+    }
+
+    function getVotingsCount() public view returns (uint256) {
+        return votings.length;
+    }
+
+    function getVotingQuestion(uint256 index) public view returns (string memory) {
+        return votings[index].getQuestion();
     }
 }
