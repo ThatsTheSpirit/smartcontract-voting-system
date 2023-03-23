@@ -11,6 +11,8 @@ contract VotingEngine is Ownable {
 
     //constructor() {}
 
+    event VotingCreated();
+
     function createVoting(
         string memory _question,
         string[] memory _candidates,
@@ -19,6 +21,7 @@ contract VotingEngine is Ownable {
     ) public {
         votings.push(new Voting(_question, _candidates, _duration, _quorum));
         ownerToVotings[msg.sender].push(votings[votings.length - 1]);
+        emit VotingCreated();
     }
 
     function getVoting(uint256 index) public view returns (Voting) {

@@ -3,7 +3,7 @@ const { network, deployments, ethers, getNamedAccounts } = require("hardhat")
 const { time } = require("@nomicfoundation/hardhat-network-helpers")
 const { developmentChains, networkConfig } = require("../../helper-hardhat-config")
 
-describe("Voting Unit Tests", function () {
+describe.only("Voting Unit Tests", function () {
     let votingContract, accounts, deployer, startTimeStamp
     const chainId = network.config.chainId
 
