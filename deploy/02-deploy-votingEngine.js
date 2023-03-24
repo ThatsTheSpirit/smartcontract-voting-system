@@ -25,7 +25,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const votingEngine = await ethers.getContract("VotingEngine", deployer)
     const votingsCounts = await votingEngine.getVotingsCount()
     log(`Found ${votingsCounts} votings`)
-    if (votingsCounts === 0) {
+    if (votingsCounts == 0) {
         log("Creating voting...")
         await votingEngine.createVoting(question, candidates, duration, quorum)
     }
