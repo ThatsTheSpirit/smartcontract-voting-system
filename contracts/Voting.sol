@@ -62,12 +62,12 @@ contract Voting is Ownable {
         state = State.STARTED;
         whitelisted[msg.sender] = true;
         registeredVoters = _voters;
-        // for (uint256 i = 0; i < _voters.length; i++) {
-        //     address voter = _voters[i];
-        //     voters[voter].registered = true;
-        //     registeredVoters.push(voter);
-        //     emit VoterRegistered(voter);
-        // }
+        for (uint256 i = 0; i < _voters.length; i++) {
+            address voter = _voters[i];
+            voters[voter].registered = true;
+            //registeredVoters.push(voter);
+            emit VoterRegistered(voter);
+        }
         //registerVoters(_voters);
         //need to register voters
     }
