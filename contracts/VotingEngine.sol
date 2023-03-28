@@ -11,21 +11,28 @@ contract VotingEngine is Ownable {
 
     //constructor() {}
 
-    event VotingCreated(string indexed question);
+    event VotingCreated(Voting voting);
 
     function createVoting(
         string memory _question,
         string[] memory _candidates,
         uint256 _duration,
-        uint256 _quorum
+        uint256 _quorum,
+        address[] memory _voters,
+        address _owner
     ) public {
-        votings.push(new Voting(_question, _candidates, _duration, _quorum));
+        votings.push(new Voting(_question, _candidates, _duration, _quorum, _voters, _owner));
         ownerToVotings[msg.sender].push(votings[votings.length - 1]);
-        emit VotingCreated(_question);
+        emit VotingCreated(votings[votings.length - 1]);
     }
 
     function getVoting(uint256 index) public view returns (Voting) {
+        //require(index >= 0 && index < votings.length - 1);
         return votings[index];
+    }
+
+    function getVotings() public view returns (Voting[] memory) {
+        return votings;
     }
 
     function getVotingsCount() public view returns (uint256) {

@@ -49,8 +49,11 @@ contract Voting is Ownable {
         string memory _question,
         string[] memory _candidates,
         uint256 _duration,
-        uint256 _quorum
+        uint256 _quorum,
+        address[] memory _voters,
+        address _newOwner
     ) {
+        transferOwnership(_newOwner);
         i_startTime = block.timestamp;
         i_endTime = block.timestamp + _duration;
         i_quorum = _quorum;
@@ -58,7 +61,15 @@ contract Voting is Ownable {
         candidates = _candidates;
         state = State.STARTED;
         whitelisted[msg.sender] = true;
-        //lastTimeStamp = block.timestamp;
+        registeredVoters = _voters;
+        // for (uint256 i = 0; i < _voters.length; i++) {
+        //     address voter = _voters[i];
+        //     voters[voter].registered = true;
+        //     registeredVoters.push(voter);
+        //     emit VoterRegistered(voter);
+        // }
+        //registerVoters(_voters);
+        //need to register voters
     }
 
     modifier onlyRegistered() {
@@ -75,7 +86,7 @@ contract Voting is Ownable {
         _;
     }
 
-    function registerVoter(address _voter) public onlyOwner {
+    function registerVoter(address _voter) private /*onlyOwner*/ {
         if (voters[_voter].registered) revert Voting__AlreadyRegistered();
         if (timeExpired()) {
             revert Voting__TimeExpired();
@@ -88,7 +99,7 @@ contract Voting is Ownable {
         emit VoterRegistered(_voter);
     }
 
-    function registerVoters(address[] memory _voters) public onlyOwner {
+    function registerVoters(address[] memory _voters) private /*onlyOwner*/ {
         for (uint256 i = 0; i < _voters.length; i++) {
             registerVoter(_voters[i]);
         }
