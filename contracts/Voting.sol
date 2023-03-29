@@ -26,7 +26,6 @@ contract Voting is Ownable {
 
     uint256 private immutable i_startTime;
     uint256 private immutable i_endTime;
-    //uint256 private lastTimeStamp;
     uint256 public immutable i_quorum; //percent of voted
     uint256 private votedCount; //count of already voted
     State private state;
