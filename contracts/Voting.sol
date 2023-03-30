@@ -25,7 +25,7 @@ contract Voting is Ownable {
     }
 
     uint256 private immutable i_startTime;
-    uint256 private immutable i_endTime;
+    uint256 private immutable i_timeEnd;
     uint256 public immutable i_quorum; //percent of voted
     uint256 private votedCount; //count of already voted
     State private state;
@@ -44,17 +44,17 @@ contract Voting is Ownable {
 
     constructor(
         /* uint _startTime,*/
-        /*uint _endTime,*/
+        /*uint _timeEnd,*/
         string memory _question,
         string[] memory _candidates,
-        uint256 _duration,
+        uint256 _timeEnd,
         uint256 _quorum,
         address[] memory _voters,
         address _newOwner
     ) {
         transferOwnership(_newOwner);
         i_startTime = block.timestamp;
-        i_endTime = block.timestamp + _duration;
+        i_timeEnd = _timeEnd;
         i_quorum = _quorum;
         question = _question;
         candidates = _candidates;
@@ -190,7 +190,7 @@ contract Voting is Ownable {
     }
 
     function timeExpired() public view returns (bool) {
-        return block.timestamp >= i_endTime;
+        return block.timestamp >= i_timeEnd;
     }
 
     function getWinner() public view returns (string memory) {
@@ -206,7 +206,7 @@ contract Voting is Ownable {
     }
 
     function getTimeEnd() public view returns (uint256) {
-        return i_endTime;
+        return i_timeEnd;
     }
 
     function getTimeStart() public view returns (uint256) {

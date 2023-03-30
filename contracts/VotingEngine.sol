@@ -16,12 +16,12 @@ contract VotingEngine is Ownable {
     function createVoting(
         string memory _question,
         string[] memory _candidates,
-        uint256 _duration,
+        uint256 _timeEnd,
         uint256 _quorum,
         address[] memory _voters,
         address _owner
     ) public {
-        votings.push(new Voting(_question, _candidates, _duration, _quorum, _voters, _owner));
+        votings.push(new Voting(_question, _candidates, _timeEnd, _quorum, _voters, _owner));
         ownerToVotings[msg.sender].push(votings[votings.length - 1]);
         emit VotingCreated(votings[votings.length - 1]);
     }
