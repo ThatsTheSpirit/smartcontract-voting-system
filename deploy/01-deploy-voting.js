@@ -10,12 +10,12 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     const question = networkConfig[chainId]["question"]
     const candidates = networkConfig[chainId]["candidates"]
-    const duration = networkConfig[chainId]["duration"]
+    const timeEnd = networkConfig[chainId]["timeEnd"]
     const quorum = networkConfig[chainId]["quorum"]
     const owner = deployer
     const voters = [deployer, player]
 
-    const args = [question, candidates, duration, quorum, voters, owner]
+    const args = [question, candidates, timeEnd, quorum, voters, owner]
 
     const voting = await deploy("Voting", {
         from: deployer,

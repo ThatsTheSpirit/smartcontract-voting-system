@@ -9,7 +9,7 @@ contract VotingEngine is Ownable {
     Voting[] public votings;
     mapping(address => Voting[]) public ownerToVotings;
 
-    //constructor() {}
+    constructor() {}
 
     event VotingCreated(Voting voting);
 

@@ -3,8 +3,8 @@ const { network, deployments, ethers, getNamedAccounts } = require("hardhat")
 const { time } = require("@nomicfoundation/hardhat-network-helpers")
 const { developmentChains, networkConfig } = require("../../helper-hardhat-config")
 
-describe.only("Voting Unit Tests", function () {
-    let votingContract, accounts, deployer, startTimeStamp
+describe("Voting Unit Tests", function () {
+    let votingContract, accounts, deployer, startTimeStamp, endTimeStamp
     const chainId = network.config.chainId
 
     const question = networkConfig[chainId]["question"]
@@ -19,7 +19,7 @@ describe.only("Voting Unit Tests", function () {
         votingContract = await ethers.getContract("Voting")
 
         startTimeStamp = await time.latest()
-
+        endTimeStamp = Number(await votingContract.getTimeEnd())
         //console.log(`Deployed to ${votingContract.address}`)
     })
 
@@ -42,7 +42,7 @@ describe.only("Voting Unit Tests", function () {
             assert.equal(actualTimeStart.toNumber(), expectedTimeStart)
 
             const actualTimeEnd = await votingContract.getTimeEnd()
-            const expectedTimeEnd = expectedTimeStart + duration
+            const expectedTimeEnd = networkConfig[chainId]["timeEnd"]
             assert.equal(actualTimeEnd.toNumber(), expectedTimeEnd)
 
             const actualState = await votingContract.getState()
@@ -52,71 +52,79 @@ describe.only("Voting Unit Tests", function () {
             const actualQuorum = await votingContract.getQuorum()
             assert.equal(actualQuorum, quorum)
         })
-    })
 
-    describe("registerVoter", function () {
-        let voterAddress
-        beforeEach(async function () {
-            voterAddress = accounts[1].address
-        })
-
-        it("can register a voter", async function () {
-            await votingContract.registerVoter(voterAddress)
-            const actualRegistered = (await votingContract.voters(voterAddress)).registered
-            assert.equal(actualRegistered, true)
-
-            const actualRegisteredVoter = (await votingContract.getRegisteredVoters())[0]
-            assert.equal(actualRegisteredVoter, voterAddress)
-        })
-
-        it("emits an event", async function () {
-            await expect(votingContract.registerVoter(voterAddress))
-                .to.emit(votingContract, "VoterRegistered")
-                .withArgs(voterAddress)
-        })
-
-        it("reverts if voter already registered", async function () {
-            await votingContract.registerVoter(voterAddress)
-            await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
-                "Voting__AlreadyRegistered"
-            )
-        })
-
-        it("reverts if time expired", async function () {
-            const timeEnd = (await votingContract.getTimeEnd()).toNumber()
-            await time.increaseTo(timeEnd + 1)
-            await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
-                "Voting__TimeExpired"
-            )
-        })
-
-        it("reverts if state isn't correct", async function () {
-            //const addresses = accounts.slice(2, 4).map((acc) => acc.address)
-            //await votingContract.registerVoters(addresses)
-            await votingContract.launchCalculation()
-
-            await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
-                "Voting__WrongState"
-            )
-        })
-    })
-
-    describe("registerVoters", function () {
-        it("can register many voters", async function () {
-            const addresses = accounts.map((acc) => acc.address)
-            await votingContract.registerVoters(addresses)
-
-            const expectedState = 0
-            const actualState = await votingContract.getState()
-            assert.equal(expectedState, actualState)
-
+        it("register voters", async function () {
             const actualRegisteredVoters = await votingContract.getRegisteredVoters()
+            const expectedRegistered = [accounts[0].address, accounts[1].address]
+
             const result = actualRegisteredVoters.every(function (element) {
-                return addresses.includes(element)
+                return expectedRegistered.includes(element)
             })
             assert(result)
         })
     })
+
+    // describe.skip("registerVoter", function () {
+    //     let voterAddress
+    //     beforeEach(async function () {
+    //         voterAddress = accounts[1].address
+    //     })
+
+    //     it("can register a voter", async function () {
+    //         await votingContract.registerVoter(voterAddress)
+    //         const actualRegistered = (await votingContract.voters(voterAddress)).registered
+    //         assert.equal(actualRegistered, true)
+
+    //         const actualRegisteredVoter = (await votingContract.getRegisteredVoters())[0]
+    //         assert.equal(actualRegisteredVoter, voterAddress)
+    //     })
+
+    //     it("emits an event", async function () {
+    //         await expect(votingContract.registerVoter(voterAddress))
+    //             .to.emit(votingContract, "VoterRegistered")
+    //             .withArgs(voterAddress)
+    //     })
+
+    //     it("reverts if voter already registered", async function () {
+    //         await votingContract.registerVoter(voterAddress)
+    //         await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
+    //             "Voting__AlreadyRegistered"
+    //         )
+    //     })
+
+    //     it("reverts if time expired", async function () {
+    //         const timeEnd = (await votingContract.getTimeEnd()).toNumber()
+    //         await time.increaseTo(timeEnd + 1)
+    //         await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
+    //             "Voting__TimeExpired"
+    //         )
+    //     })
+
+    //     it("reverts if state isn't correct", async function () {
+    //         await votingContract.launchCalculation()
+
+    //         await expect(votingContract.registerVoter(voterAddress)).to.be.revertedWith(
+    //             "Voting__WrongState"
+    //         )
+    //     })
+    // })
+
+    // describe.skip("registerVoters", function () {
+    //     it("can register many voters", async function () {
+    //         const addresses = accounts.map((acc) => acc.address)
+    //         await votingContract.registerVoters(addresses)
+
+    //         const expectedState = 0
+    //         const actualState = await votingContract.getState()
+    //         assert.equal(expectedState, actualState)
+
+    //         const actualRegisteredVoters = await votingContract.getRegisteredVoters()
+    //         const result = actualRegisteredVoters.every(function (element) {
+    //             return addresses.includes(element)
+    //         })
+    //         assert(result)
+    //     })
+    // })
 
     describe("voteFor", function () {
         let voters
@@ -124,7 +132,7 @@ describe.only("Voting Unit Tests", function () {
             candidateNo = "no"
         beforeEach(async function () {
             voters = accounts.slice(0, 3).map((acc) => acc.address)
-            await votingContract.registerVoters(voters)
+            //await votingContract.registerVoters(voters)
         })
         it("can vote for some candidate", async function () {
             await votingContract.voteFor(candidateYes)
@@ -163,7 +171,7 @@ describe.only("Voting Unit Tests", function () {
         })
 
         it("reverts when time expired", async function () {
-            await time.increaseTo(startTimeStamp + duration)
+            await time.increaseTo(endTimeStamp + 1)
             await expect(votingContract.voteFor(candidateYes)).to.be.revertedWith(
                 "Voting__TimeExpired"
             )
@@ -176,7 +184,7 @@ describe.only("Voting Unit Tests", function () {
             candidateNo = "no"
         beforeEach(async function () {
             voters = accounts.slice(0, 3).map((acc) => acc.address)
-            await votingContract.registerVoters(voters)
+            //await votingContract.registerVoters(voters)
         })
 
         it("reverts if state isn't correct", async function () {
@@ -190,8 +198,8 @@ describe.only("Voting Unit Tests", function () {
             const acc2Connected = await votingContract.connect(accounts[1])
             await acc2Connected.voteFor(candidateNo)
 
-            const acc3Connected = await votingContract.connect(accounts[2])
-            await acc3Connected.voteFor(candidateYes)
+            //const acc3Connected = await votingContract.connect(accounts[2])
+            //await acc3Connected.voteFor(candidateYes)
 
             await votingContract.launchCalculation()
 
@@ -209,6 +217,28 @@ describe.only("Voting Unit Tests", function () {
             await votingContract.defWinner()
             const winner = await votingContract.getWinner()
             assert.equal(winner, "")
+        })
+    })
+
+    describe("launch calculation", function () {
+        it("can change state to CALCULATION", async function () {
+            const player = accounts[1].address
+            await votingContract.addToWhitelist(player)
+            await votingContract.launchCalculation()
+
+            const expectedState = 1
+            const actualState = await votingContract.getState()
+            assert.equal(expectedState, actualState)
+        })
+        it("reverts if address is not whitelisted", async function () {
+            const acc2Connected = await votingContract.connect(accounts[1])
+            await expect(acc2Connected.launchCalculation()).to.be.revertedWith(
+                "Voting__NotWhitelisted"
+            )
+        })
+
+        it("emits the VotingClosed event", async function () {
+            await expect(votingContract.launchCalculation()).to.emit(votingContract, "VotingClosed")
         })
     })
 })

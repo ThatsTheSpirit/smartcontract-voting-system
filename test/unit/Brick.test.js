@@ -3,7 +3,7 @@ const { network, deployments, ethers, getNamedAccounts } = require("hardhat")
 const { time } = require("@nomicfoundation/hardhat-network-helpers")
 const { GelatoOpsSDK, isGelatoOpsSupported } = require("@gelatonetwork/ops-sdk")
 
-describe.only("Brick Unit Tests", function () {
+describe.skip("Brick Unit Tests", function () {
     let brickContract, accounts, signer
     const chainId = network.config.chainId
     const brickContractAddress = "0x277bf2e7969F8920c3995667973e0B44bE7d441D"

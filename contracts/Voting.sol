@@ -52,7 +52,10 @@ contract Voting is Ownable {
         address[] memory _voters,
         address _newOwner
     ) {
-        transferOwnership(_newOwner);
+        if (_newOwner != address(0)) {
+            transferOwnership(_newOwner);
+        }
+
         i_startTime = block.timestamp;
         i_timeEnd = _timeEnd;
         i_quorum = _quorum;
