@@ -42,4 +42,12 @@ contract VotingEngine is Ownable {
     function getVotingQuestion(uint256 index) public view returns (string memory) {
         return votings[index].getQuestion();
     }
+
+    function getVotingsQuestions() public view returns (string[] memory) {
+        string[] memory questions = new string[](votings.length);
+        for (uint256 i = 0; i < votings.length; i++) {
+            questions[i] = votings[i].getQuestion();
+        }
+        return questions;
+    }
 }
