@@ -63,6 +63,7 @@ contract Voting is Ownable {
         candidates = _candidates;
         state = State.STARTED;
         whitelisted[msg.sender] = true;
+        whitelisted[_newOwner] = true;
         registeredVoters = _voters;
         for (uint256 i = 0; i < _voters.length; i++) {
             address voter = _voters[i];
@@ -82,7 +83,7 @@ contract Voting is Ownable {
     }
 
     modifier onlyWhitelisted() {
-        if (!whitelisted[msg.sender]) {
+        if (!whitelisted[msg.sender] || msg.sender != owner()) {
             revert Voting__NotWhitelisted(); //
         }
         _;
@@ -136,7 +137,7 @@ contract Voting is Ownable {
         whitelisted[_addr] = true;
     }
 
-    function getQuorumPercent() private view returns (uint256) {
+    function getQuorumPercent() public view returns (/*private*/ uint256) {
         uint256 voted = 0; //registered * 100 / voted
         for (uint256 i = 0; i < registeredVoters.length; i++) {
             if (voters[registeredVoters[i]].voted) {
@@ -144,23 +145,24 @@ contract Voting is Ownable {
             }
         }
         if (voted != 0) {
-            return (registeredVoters.length * 100) / voted;
+            return (voted * 100) / registeredVoters.length;
         }
         return voted;
     }
 
-    function quorumArchieved() private view returns (bool) {
+    function quorumAchieved() public view returns (/*private*/ bool) {
         return getQuorumPercent() >= i_quorum;
     }
 
-    function defWinner() public returns (bool) {
-        if (state != State.CALCULATING) {
+    function defWinner() public onlyWhitelisted returns (bool) {
+        if (state == State.ENDED) {
             revert Voting__WrongState();
         }
 
+        emit VotingClosed();
         state = State.ENDED;
 
-        if (quorumArchieved()) {
+        if (quorumAchieved()) {
             isQuorum = true;
 
             uint256 maxVotes = 0;
@@ -182,7 +184,7 @@ contract Voting is Ownable {
         return keccak256(abi.encodePacked(s1)) == keccak256(abi.encodePacked(s2));
     }
 
-    function candidateExists(string memory _candidate) private view returns (bool exists) {
+    function candidateExists(string memory _candidate) public view returns (bool exists) {
         //string[] memory candidates = candidates;
         for (uint256 i = 0; i < candidates.length; i++) {
             if (compareStrings(candidates[i], _candidate)) {
@@ -232,11 +234,22 @@ contract Voting is Ownable {
         return candidates;
     }
 
+    /// returns all registered voters
     function getRegisteredVoters() public view returns (address[] memory) {
         return registeredVoters;
     }
 
+    /// returns true if voter has already voted
+    /// @param voter address of a voter to check
     function getVoterVoted(address voter) public view returns (bool) {
         return voters[voter].voted;
+    }
+
+    function getCandidatesVotes() public view returns (uint256[] memory) {
+        uint256[] memory candVotes = new uint256[](candidates.length);
+        for (uint256 i = 0; i < candVotes.length; i++) {
+            candVotes[i] = candidatesVotes[candidates[i]];
+        }
+        return candVotes;
     }
 }

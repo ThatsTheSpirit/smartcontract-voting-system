@@ -4,17 +4,19 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers")
 const { developmentChains, networkConfig } = require("../../helper-hardhat-config")
 
 describe("Voting Unit Tests", function () {
-    let votingContract, accounts, deployer, startTimeStamp, endTimeStamp
+    let votingContract, accounts, deployer, player, startTimeStamp, endTimeStamp
     const chainId = network.config.chainId
 
     const question = networkConfig[chainId]["question"]
     const candidates = networkConfig[chainId]["candidates"]
     const duration = networkConfig[chainId]["duration"]
     const quorum = networkConfig[chainId]["quorum"]
+    const voters = [deployer, player]
 
     beforeEach(async function () {
         accounts = await ethers.getSigners()
         deployer = accounts[0]
+        player = accounts[1]
         await deployments.fixture(["voting"])
         votingContract = await ethers.getContract("Voting")
 
@@ -143,7 +145,7 @@ describe("Voting Unit Tests", function () {
             assert.equal(actualVoted, true)
         })
 
-        it("emits an event", async function () {
+        it("emits the VoterVoted event", async function () {
             await expect(votingContract.voteFor(candidateYes))
                 .to.emit(votingContract, "VoterVoted")
                 .withArgs(voters[0], candidateYes)
@@ -156,7 +158,7 @@ describe("Voting Unit Tests", function () {
             )
         })
 
-        it("reverts if state isn't correct", async function () {
+        it("reverts if state isn't STARTED", async function () {
             await votingContract.launchCalculation()
             await expect(votingContract.voteFor(candidateYes)).to.be.revertedWith(
                 "Voting__WrongState"
@@ -184,14 +186,14 @@ describe("Voting Unit Tests", function () {
             candidateNo = "no"
         beforeEach(async function () {
             voters = accounts.slice(0, 3).map((acc) => acc.address)
-            //await votingContract.registerVoters(voters)
         })
 
         it("reverts if state isn't correct", async function () {
+            await votingContract.defWinner()
             await expect(votingContract.defWinner()).to.be.revertedWith("Voting__WrongState")
         })
 
-        it("defines the winner if quorum archieved", async function () {
+        it("defines the winner if quorum achieved", async function () {
             const acc1Connected = await votingContract.connect(accounts[0])
             await acc1Connected.voteFor(candidateYes)
 
@@ -201,7 +203,7 @@ describe("Voting Unit Tests", function () {
             //const acc3Connected = await votingContract.connect(accounts[2])
             //await acc3Connected.voteFor(candidateYes)
 
-            await votingContract.launchCalculation()
+            //await votingContract.launchCalculation()
 
             await votingContract.defWinner()
             const winner = await votingContract.getWinner()
@@ -211,34 +213,162 @@ describe("Voting Unit Tests", function () {
             expect(await votingContract.getState()).to.eq(expectedState)
         })
 
-        it("can't define the winner if quorum doesn't archieved", async function () {
-            await votingContract.launchCalculation()
-
+        it("can't define the winner if quorum didn't achieve", async function () {
             await votingContract.defWinner()
             const winner = await votingContract.getWinner()
             assert.equal(winner, "")
         })
-    })
 
-    describe("launch calculation", function () {
-        it("can change state to CALCULATION", async function () {
+        it("can change state to ENDED", async function () {
             const player = accounts[1].address
-            await votingContract.addToWhitelist(player)
-            await votingContract.launchCalculation()
+            await votingContract.defWinner()
 
-            const expectedState = 1
+            const expectedState = 2
             const actualState = await votingContract.getState()
             assert.equal(expectedState, actualState)
         })
+
         it("reverts if address is not whitelisted", async function () {
             const acc2Connected = await votingContract.connect(accounts[1])
-            await expect(acc2Connected.launchCalculation()).to.be.revertedWith(
-                "Voting__NotWhitelisted"
-            )
+            await expect(acc2Connected.defWinner()).to.be.revertedWith("Voting__NotWhitelisted")
         })
 
         it("emits the VotingClosed event", async function () {
-            await expect(votingContract.launchCalculation()).to.emit(votingContract, "VotingClosed")
+            await expect(votingContract.defWinner()).to.emit(votingContract, "VotingClosed")
+        })
+    })
+
+    describe("Getters", function () {
+        describe("compareStrings", function () {
+            it("compareStrings to true", async function () {
+                assert(await votingContract.compareStrings("abc", "abc"))
+            })
+
+            it("compareStrings to false", async function () {
+                assert.equal(await votingContract.compareStrings("abc1", "abc"), false)
+            })
+        })
+
+        describe("candidateExists", function () {
+            it("returns false if candidate doesn't exist", async function () {
+                assert.equal(await votingContract.candidateExists("0x"), false)
+            })
+
+            it("returns true if candidate exists", async function () {
+                assert(await votingContract.candidateExists(candidates[0]))
+            })
+        })
+
+        describe("timeExpired", function () {
+            it("returns false if time didn't expire", async function () {
+                assert.equal(await votingContract.timeExpired(), false)
+            })
+
+            it("returns true if time expired", async function () {
+                await time.increaseTo(endTimeStamp + 1)
+                assert(await votingContract.timeExpired())
+            })
+        })
+
+        it("getQuestion", async function () {
+            assert.equal(await votingContract.getQuestion(), question)
+        })
+
+        it("getState", async function () {
+            assert.equal(await votingContract.getState(), 0)
+        })
+
+        it("getTimeEnd", async function () {
+            assert.equal(await votingContract.getTimeEnd(), endTimeStamp)
+        })
+
+        it("getTimeStart", async function () {
+            assert.equal(await votingContract.getTimeStart(), startTimeStamp)
+        })
+
+        it("getQuorum", async function () {
+            assert.equal(await votingContract.getQuorum(), quorum)
+        })
+
+        it("getCandidatesCount", async function () {
+            assert.equal(await votingContract.getCandidatesCount(), candidates.length)
+        })
+
+        it("getCandidates", async function () {
+            const actualCandidates = await votingContract.getCandidates()
+            let result = candidates.every((element) => actualCandidates.includes(element))
+            assert(result)
+        })
+
+        it("getRegisteredVoters", async function () {
+            const actualRegisteredVoters = await votingContract.getRegisteredVoters()
+            const { deployer, player } = await getNamedAccounts()
+            let result = [deployer, player].every((element) =>
+                actualRegisteredVoters.includes(element)
+            )
+            assert(result)
+        })
+
+        describe("getVoterVoted", function () {
+            it("returns false if voter didn't vote", async function () {
+                assert.equal(await votingContract.getVoterVoted(deployer.address), false)
+            })
+
+            it("returns true if voter voted", async function () {
+                await votingContract.voteFor(candidates[0])
+                assert(await votingContract.getVoterVoted(deployer.address))
+            })
+        })
+
+        describe("getCandidateVotes", function () {
+            it("returns 0 if candidate has no votes", async function () {
+                const actualVotes = await votingContract.getCandidateVotes(candidates[0])
+                assert.equal(actualVotes, 0)
+            })
+
+            it("returns count of votes if candidate has votes", async function () {
+                await votingContract.voteFor(candidates[0])
+                const actualVotes = await votingContract.getCandidateVotes(candidates[0])
+                assert.equal(actualVotes, 1)
+            })
+        })
+
+        describe("getWinner", function () {
+            it("returns empty string when quorum didn't achieve", async function () {
+                assert.equal(await votingContract.getWinner(), "")
+            })
+
+            it("returns winner string when quorum achieved", async function () {
+                await votingContract.voteFor(candidates[0])
+                await votingContract.defWinner()
+                assert.equal(await votingContract.getWinner(), candidates[0])
+            })
+        })
+
+        describe("getQuorumPercent", function () {
+            it("returns 0 if no one voted", async function () {
+                let actualQuorumPercent = await votingContract.getQuorumPercent()
+                assert.equal(actualQuorumPercent, 0)
+            })
+
+            it("returns a quorum if at least 1 user voted", async function () {
+                await votingContract.voteFor(candidates[0])
+                const actualQuorumPercent = await votingContract.getQuorumPercent()
+                assert.equal(actualQuorumPercent.toNumber(), 50)
+            })
+        })
+
+        describe("quorumAchieved", function () {
+            it("returns false if quorum didn't achieve", async function () {
+                let actualQuorumAchieved = await votingContract.quorumAchieved()
+                assert.equal(actualQuorumAchieved, false)
+            })
+
+            it("returns true if quorum achieved", async function () {
+                await votingContract.voteFor(candidates[0])
+                const actualQuorumAchieved = await votingContract.quorumAchieved()
+                assert(actualQuorumAchieved)
+            })
         })
     })
 })

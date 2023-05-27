@@ -11,10 +11,22 @@ const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://eth-goerli"
 const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL || "https://eth-mumbai"
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://eth-sepolia"
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xkey"
+const MUMBAI_API = process.env.MUMBAI_API || "0xkey"
+const SEPOLIA_INFURA = process.env.SEPOLIA_INFURA || "0xkey"
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "0xkey"
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
     solidity: "0.8.17",
+    settings: {
+        optimizer: { enabled: process.env.DEBUG ? false : true },
+    },
+    etherscan: {
+        apiKey: {
+            polygonMumbai: MUMBAI_API,
+            sepolia: ETHERSCAN_API_KEY,
+        },
+    },
     gasReporter: {
         enabled: process.env.REPORT_GAS ? true : false,
     },
@@ -33,7 +45,7 @@ module.exports = {
         sepolia: {
             chainId: 11155111,
             blockConfirmations: 6,
-            url: SEPOLIA_RPC_URL,
+            url: SEPOLIA_INFURA,
             accounts: [PRIVATE_KEY],
         },
         mumbai: {

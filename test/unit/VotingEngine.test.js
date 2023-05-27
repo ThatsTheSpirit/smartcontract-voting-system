@@ -43,9 +43,15 @@ describe("VotingEngine Unit Tests", function () {
             expect(await createdVoting.getQuestion()).to.eq(question)
             expect(await createdVoting.getTimeStart()).to.eq(startTimeStamp)
         })
+
+        it("emits the VotingCreated event", async function () {
+            await expect(
+                votingEngContract.createVoting(question, candidates, timeEnd, quorum, voters, owner)
+            ).to.emit(votingEngContract, "VotingCreated")
+        })
     })
 
-    describe("getters", function () {
+    describe("Getters", function () {
         beforeEach(async function () {
             await votingEngContract.createVoting(
                 question,
@@ -68,16 +74,22 @@ describe("VotingEngine Unit Tests", function () {
             assert(result)
         })
 
-        it("can get count", async function () {
+        it("can get a count", async function () {
             const actualCount = await votingEngContract.getVotingsCount()
             const expectedCount = 1
             assert.equal(actualCount, expectedCount)
         })
 
-        it("can get question", async function () {
+        it("can get a question", async function () {
             const actualQuestion = await votingEngContract.getVotingQuestion(0)
             const expectedQuestion = question
             assert.equal(actualQuestion, expectedQuestion)
+        })
+
+        it("can get questions", async function () {
+            const actualQuestions = await votingEngContract.getVotingsQuestions()
+            const expectedQuestion = question
+            assert.equal(actualQuestions[0], expectedQuestion)
         })
     })
 })

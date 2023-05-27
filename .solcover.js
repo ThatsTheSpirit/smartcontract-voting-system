@@ -1,4 +1,6 @@
 module.exports = {
     silent: false,
-    //skipFiles: ["Brick.sol", "Voting.sol"],
+    skipFiles: ["Brick.sol"],
+    measureFunctionCoverage: false,
+    measureStatementCoverage: false,
 }
