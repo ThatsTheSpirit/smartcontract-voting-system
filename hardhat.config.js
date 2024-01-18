@@ -10,6 +10,7 @@ require("dotenv").config()
 const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://eth-goerli"
 const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL || "https://eth-mumbai"
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://eth-sepolia"
+const BSCTESTNET_RPC_URL = process.env.BSCTESTNET_RPC_URL || "https://bsc-testnet"
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xkey"
 const MUMBAI_API = process.env.MUMBAI_API || "0xkey"
 const SEPOLIA_INFURA = process.env.SEPOLIA_INFURA || "0xkey"
@@ -52,6 +53,12 @@ module.exports = {
             chainId: 80001,
             blockConfirmations: 6,
             url: MUMBAI_RPC_URL,
+            accounts: [PRIVATE_KEY],
+        },
+        bsctestnet: {
+            chainId: 97,
+            blockConfirmations: 6,
+            url: BSCTESTNET_RPC_URL,
             accounts: [PRIVATE_KEY],
         },
     },
